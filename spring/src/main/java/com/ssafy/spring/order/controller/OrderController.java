@@ -23,6 +23,18 @@ public class OrderController {
         return new SuccessResponseResult(orderService.getStores(minlat, maxlat, minlng, maxlng));
     }
 
+    @ApiOperation(value = "메뉴 정보 조회", notes="메뉴 리스트를 반환한다.", httpMethod = "GET")
+    @GetMapping("/menu")
+    public SuccessResponseResult getMenuList() {
+        return new SuccessResponseResult(orderService.getMenuList());
+    }
+
+    @ApiOperation(value = "재료 정보 조회", notes="재료 리스트를 반환한다.", httpMethod = "GET")
+    @GetMapping("/ingredient")
+    public SuccessResponseResult getIngredientList() {
+        return new SuccessResponseResult(orderService.getIngredientList());
+    }
+
 //    @ApiOperation(value = "주문 생성", notes="주문 내용을 DB에 저장한다.", httpMethod = "POST")
 //    @PostMapping("/")
 //    public SuccessResponseResult order(OrderDto.requestDto orderRequestDto) {
