@@ -29,6 +29,7 @@ public class OrderRepositoryImpl implements OrderRepositoryCustom {
                 .join(orderHistory.order, orders)
                 .join(orderHistory.combination, combination)
                 .where(orders.user.eq(user))
+                .orderBy(orders.orderedAt.desc())
                 .transform(groupBy(orders.orderId).list(Projections.constructor(OrderResponse.orderDto.class, orders, list(Projections.constructor(OrderResponse.CombinationDto.class, combination.combinationId, combination.allergies, orderHistory.count)))));
 
     }

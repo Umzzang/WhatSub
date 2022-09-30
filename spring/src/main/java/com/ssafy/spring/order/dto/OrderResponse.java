@@ -122,11 +122,12 @@ public class OrderResponse {
         }
     }
 
+    @Setter
     @Getter
     public static class CombinationDto {
         private String combinationId;
         private MenuDto menu;
-        private List<IngredientDto> ingredients;
+        private List<IngredientDto> ingredients = new ArrayList<>();
         private String allergies;
         private int count;
 
