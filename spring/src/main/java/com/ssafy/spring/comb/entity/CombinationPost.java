@@ -38,6 +38,9 @@ public class CombinationPost {
     private String imgUrl;
 
     @ColumnDefault("0")
+    private float scoreAvg;
+
+    @ColumnDefault("0")
     private int likesCnt;
 
     @CreationTimestamp
@@ -47,6 +50,12 @@ public class CombinationPost {
     @JsonRawValue
     private String statistics;
 
+
     @OneToMany(mappedBy = "combinationPost")
     private List<Review> reviews = new ArrayList<>();
+
+    public void scoreUpdate(float scoreAvg) {
+        this.scoreAvg = scoreAvg;
+    }
+    public void likescntUpdate(int likesCnt) {this.likesCnt = likesCnt; }
 }

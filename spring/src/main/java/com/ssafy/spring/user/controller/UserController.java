@@ -2,6 +2,10 @@ package com.ssafy.spring.user.controller;
 
 import com.ssafy.spring.SuccessResponseResult;
 import com.ssafy.spring.comb.entity.Combination;
+import com.ssafy.spring.comb.entity.CombinationPost;
+import com.ssafy.spring.comb.service.CombPostService;
+import com.ssafy.spring.exception.NoSuchUserException;
+import com.ssafy.spring.user.dto.DibDto;
 import com.ssafy.spring.user.dto.UserRequest;
 import com.ssafy.spring.user.dto.UserResponse;
 import com.ssafy.spring.user.entity.Dib;
@@ -14,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static java.util.stream.Collectors.toList;
+
 @RestController@Api(value = "user-controller", tags={"user-controller"})
 
 @RequestMapping("/user")
@@ -22,6 +28,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private CombPostService combPostService;
 
     // 더미 데이터 생성 api
     @ApiOperation(value = "더미 데이터 생성", notes="임시 유저 데이터 5000개 삽입", httpMethod = "GET")
@@ -61,49 +70,45 @@ public class UserController {
         return new SuccessResponseResult();
     }
 
-    @ApiOperation(value = "일반 회원가입", notes="회원가입에 성공하면 success, 아니면 fail", httpMethod = "POST")
+    @ApiOperation(value = "설문조사 내용 업데이트", notes="회원가입에 성공하면 success, 아니면 fail", httpMethod = "POST")
     @PostMapping("/signup")
-    public SuccessResponseResult signUp(@RequestBody UserRequest.SignUpRequest request){
-        User user = User.builder()
-                .email(request.getEmail())
-                .gender(request.getGender())
-                .birthYear(request.getBirthYear())
-                .userName(request.getUserName())
-                .profileImg(request.getProfileImg())
-                .build();
+    public SuccessResponseResult signUp(@RequestBody UserRequest.SignUpRequest request) throws NoSuchUserException {
+        User user = userService.getUserByUserId(request.getUserId());
 
-        // 회원가입 로직
+        if(user == null){
+            throw new NoSuchUserException();
+        }
+
+        user.updateInfo(request);
+//        user = User.builder()
+//                .email(request.getEmail())
+//                .gender(request.getGender())
+//                .birthYear(request.getBirthYear())
+//                .userName(request.getUserName())
+//                .profileImg(request.getProfileImg())
+//                .build();
         userService.save(user);
         String userName = user.getUserName();
         return new SuccessResponseResult(userName);
     }
     
 
-    @ApiOperation(value = "일반 로그인", notes="로그인에 성공하면 username 반환", httpMethod = "POST")
-    @PostMapping("/login")
-    public SuccessResponseResult login(@RequestBody UserRequest.LoginRequest request){
-
-        // 로그인 로직
-
-        return new SuccessResponseResult();
-    }
+//    @ApiOperation(value = "일반 로그인", notes="로그인에 성공하면 username 반환", httpMethod = "POST")
+//    @PostMapping("/login")
+//    public SuccessResponseResult login(@RequestBody UserRequest.LoginRequest request){
+//
+//        // 로그인 로직
+//
+//        return new SuccessResponseResult();
+//    }
 
     @ApiOperation(value = "유저 정보 조회", notes="userName을 통해 유저 정보 조회(남자: 0, 여자: 1)", httpMethod = "GET")
     @GetMapping("/{userName}")
-    public SuccessResponseResult getUser(@PathVariable String userName){
-//        User user = UserService.getUserByUserName(userName);
-        // 존재하지 않는 유저 예외 처리
-
-        // 테스트를 위한 더미 데이터
-        User user = User.builder()
-                .userId(1)
-                .email("ssafy1@naver.com")
-                .gender("0")
-                .birthYear(1998)
-                .userName("김싸피")
-                .profileImg("profileLink")
-                .subti("LSAH")
-                .build();
+    public SuccessResponseResult getUser(@PathVariable String userName) throws NoSuchUserException {
+        User user = userService.getUserByUserName(userName);
+        if(user == null){
+            throw new NoSuchUserException();
+        }
 
         UserResponse.GetUserResponse response = UserResponse.GetUserResponse.builder()
                 .email(user.getEmail())
@@ -126,36 +131,66 @@ public class UserController {
         return new SuccessResponseResult(isDuplicate);
     }
 
+    @ApiOperation(value = "찜목록 조회", notes="찜목록 조회", httpMethod = "POST")
+    @PostMapping("/{userName}/dibs")
+    public SuccessResponseResult getDibList(@PathVariable String userName) throws NoSuchUserException {
+        User user = userService.getUserByUserName(userName);
+        if(user == null){
+            throw new NoSuchUserException();
+        }
+
+        List<DibDto> dibList = userService.getDibsByUserAndStateIsTrue(user).stream()
+                .map(DibDto::new)
+                .collect(toList());
+
+        return new SuccessResponseResult(dibList);
+    }
+
     @ApiOperation(value = "찜목록과 작성한 꿀조합 조회", notes="찜목록과 작성한 꿀조합 조회", httpMethod = "POST")
     @PostMapping("/{userName}/list")
-    public SuccessResponseResult getDibNcombList(@PathVariable String userName){
+    public SuccessResponseResult getDibNcombList(@PathVariable String userName) throws NoSuchUserException {
         User user = userService.getUserByUserName(userName);
-        List<Dib> dibList = userService.getDibsByUserAndStateIsTrue(user);
-        List<Combination> combinationList = null; // 임시 꿀조합 리스트
+        if(user == null){
+            throw new NoSuchUserException();
+        }
 
-        UserResponse.GetDibNcombListResponse response = new UserResponse.GetDibNcombListResponse(dibList, combinationList);
-        return new SuccessResponseResult(response);
+        List<DibDto> dibList = userService.getDibsByUserAndStateIsTrue(user).stream()
+                .map(DibDto::new)
+                .collect(toList());
+//        List<CombinationPost> combList = combPostService.findAllByUser(user);
+        List<CombinationPost> combList = null;
+
+//        UserResponse.GetDibNcombListResponse response = new UserResponse.GetDibNcombListResponse(dibList, combinationList);
+        return new SuccessResponseResult(combList);
     }
 
     @ApiOperation(value = "subti 등록", notes="subti 결과를 DB에 등록", httpMethod = "POST")
-    @PostMapping("subti")
+    @PostMapping("/subti")
     public SuccessResponseResult setSubti(@RequestBody UserRequest.SetSubtiRequest request) {
         int userId = request.getUserId();
-//        User user = UserService.getUserByUserId(userId);
-//
-//        String subti = request.getSubti();
-//        user.setSubti(subti);
-//        UserService.save(user);
+        User user = userService.getUserByUserId(userId);
+
+        String subti = request.getSubti();
+        user.setSubti(subti);
+        userService.save(user);
+
         return new SuccessResponseResult();
     }
 
     @ApiOperation(value = "제외 재료 등록", notes="등록이 완료되면 success, 아니면 fail", httpMethod = "POST")
     @PostMapping("/{userName}/exclude")
-    public SuccessResponseResult excludeIngredient(@RequestBody UserRequest.ExcludeRequest request){
+    public SuccessResponseResult excludeIngredient(@PathVariable String userName, @RequestBody UserRequest.ExcludeRequest request) throws NoSuchUserException {
+        User user = userService.getUserByUserName(userName);
+        if(user == null){
+            throw new NoSuchUserException();
+        }
+
         List<Integer> vegetables = request.getVegetables();
         List<Integer> allergies = request.getAllergies();
 
         // 알레르기 및 제외 재료 로직
+
+
 
         return new SuccessResponseResult();
     }
